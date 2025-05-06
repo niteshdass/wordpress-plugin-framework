@@ -49,19 +49,6 @@ class Category extends Model {
      * @return array
      */
     public function products() {
-        return Product::where(['category_id' => $this->id]);
+        return $this->belongsToMany(Courier::class);
     }
-
-    /**
-     * Create a new category with the current timestamp
-     *
-     * @param array $attributes
-     * @return static
-     */
-    // public static function create(array $attributes) {
-    //     if (!isset($attributes['created_at'])) {
-    //         $attributes['created_at'] = date('Y-m-d H:i:s');
-    //     }
-    //     return parent::create($attributes);
-    // }
 }

@@ -35,6 +35,20 @@ abstract class Model {
     protected $fillable = [];
 
     /**
+     * The relations to eager load on every query.
+     *
+     * @var array
+     */
+    protected $with = [];
+
+    /**
+     * The loaded relationships for the model.
+     *
+     * @var array
+     */
+    protected $relations = [];
+
+    /**
      * Create a new model instance.
      *
      * @param array $attributes
@@ -61,13 +75,30 @@ abstract class Model {
     }
 
     /**
-     * Get an attribute from the model.
+     * Get an attribute or relation from the model.
      *
      * @param string $key
      * @return mixed
      */
     public function __get($key) {
-        return $this->attributes[$key] ?? null;
+        // First check if the attribute exists
+        if (array_key_exists($key, $this->attributes)) {
+            return $this->attributes[$key];
+        }
+
+        // Then check if it's a loaded relation
+        if (array_key_exists($key, $this->relations)) {
+            return $this->relations[$key];
+        }
+
+        // Check if the key is a relationship method
+        if (method_exists($this, $key)) {
+            // Load the relationship and cache it
+            $this->relations[$key] = $this->$key();
+            return $this->relations[$key];
+        }
+
+        return null;
     }
 
     /**
@@ -105,6 +136,19 @@ abstract class Model {
     }
 
     /**
+     * Begin querying the model with eager loading.
+     *
+     * @param array|string $relations
+     * @return \EhxDirectorist\Models\Builder
+     */
+    public static function with($relations) {
+        $instance = new static;
+        $query = new Builder($instance);
+        
+        return $query->with(is_string($relations) ? func_get_args() : $relations);
+    }
+
+    /**
      * Find a model by its primary key.
      *
      * @param mixed $id
@@ -124,13 +168,20 @@ abstract class Model {
             return null;
         }
         
-        return new static($result);
+        $model = new static($result);
+        
+        // Load default eager loaded relationships
+        if (!empty($instance->with)) {
+            $model->loadRelations($instance->with);
+        }
+        
+        return $model;
     }
 
     /**
      * Get all records from the database.
      *
-     * @return array
+     * @return Collection
      */
     public static function all() {
         $instance = new static;
@@ -145,14 +196,21 @@ abstract class Model {
             $models[] = new static($result);
         }
         
-        return $models;
+        $collection = new Collection($models);
+        
+        // Load default eager loaded relationships
+        if (!empty($instance->with)) {
+            $collection->loadRelations($instance->with);
+        }
+        
+        return $collection;
     }
 
     /**
      * Get records based on where conditions.
      *
      * @param array $conditions
-     * @return array
+     * @return Collection
      */
     public static function where($conditions) {
         $instance = new static;
@@ -178,7 +236,14 @@ abstract class Model {
             $models[] = new static($result);
         }
         
-        return $models;
+        $collection = new Collection($models);
+        
+        // Load default eager loaded relationships
+        if (!empty($instance->with)) {
+            $collection->loadRelations($instance->with);
+        }
+        
+        return $collection;
     }
 
     /**
@@ -250,172 +315,547 @@ abstract class Model {
         
         return $model;
     }
-}
 
-/**
- * DB Schema creator for models
- */
-class Model_Schema {
     /**
-     * Create a database table for a model.
+     * Load a set of relationships.
      *
-     * @param string $modelClass
-     * @param callable $callback
-     * @return void
+     * @param array $relations
+     * @return $this
      */
-    public static function create($modelClass, callable $callback) {
+    public function loadRelations(array $relations) {
+        foreach ($relations as $relation) {
+            if (method_exists($this, $relation)) {
+                $this->relations[$relation] = $this->$relation();
+            }
+        }
+        
+        return $this;
+    }
+
+    /**
+     * Define a one-to-one relationship.
+     *
+     * @param string $related Related model class name
+     * @param string $foreignKey Foreign key on related model
+     * @param string $localKey Local key on this model
+     * @return mixed
+     */
+    public function hasOne($related, $foreignKey = null, $localKey = null) {
+        $instance = new $related();
+        
+        // Determine foreign key if not provided
+        if ($foreignKey === null) {
+            $class = get_class($this);
+            $parts = explode('\\', $class);
+            $className = end($parts);
+            $foreignKey = strtolower($className) . '_id';
+        }
+        
+        // Determine local key if not provided
+        if ($localKey === null) {
+            $localKey = $this->primaryKey;
+        }
+        
+        // Check if local key exists
+        if (!isset($this->attributes[$localKey])) {
+            return null;
+        }
+        
+        return $related::where([$foreignKey => $this->attributes[$localKey]])->first();
+    }
+
+    /**
+     * Define a one-to-many relationship.
+     *
+     * @param string $related Related model class name
+     * @param string $foreignKey Foreign key on related models
+     * @param string $localKey Local key on this model
+     * @return Collection
+     */
+    public function hasMany($related, $foreignKey = null, $localKey = null) {
+        $instance = new $related();
+        
+        // Determine foreign key if not provided
+        if ($foreignKey === null) {
+            $class = get_class($this);
+            $parts = explode('\\', $class);
+            $className = end($parts);
+            $foreignKey = strtolower($className) . '_id';
+        }
+        
+        // Determine local key if not provided
+        if ($localKey === null) {
+            $localKey = $this->primaryKey;
+        }
+        
+        // Check if local key exists
+        if (!isset($this->attributes[$localKey])) {
+            return new Collection([]);
+        }
+        
+        return $related::where([$foreignKey => $this->attributes[$localKey]]);
+    }
+
+    /**
+     * Define an inverse one-to-one or many relationship.
+     *
+     * @param string $related Related model class name
+     * @param string $foreignKey Foreign key on this model
+     * @param string $ownerKey Owner key on the related model
+     * @return mixed
+     */
+    public function belongsTo($related, $foreignKey = null, $ownerKey = null) {
+        $instance = new $related();
+        
+        // Determine foreign key if not provided
+        if ($foreignKey === null) {
+            $class = $related;
+            $parts = explode('\\', $class);
+            $className = end($parts);
+            $foreignKey = strtolower($className) . '_id';
+        }
+        
+        // Determine owner key if not provided
+        if ($ownerKey === null) {
+            $ownerKey = $instance->primaryKey;
+        }
+        
+        // Check if foreign key exists
+        if (!isset($this->attributes[$foreignKey])) {
+            return null;
+        }
+        
+        return $related::find($this->attributes[$foreignKey]);
+    }
+
+    /**
+     * Define a many-to-many relationship.
+     *
+     * @param string $related Related model class name
+     * @param string $table Pivot table name
+     * @param string $foreignPivotKey Foreign key on pivot table for this model
+     * @param string $relatedPivotKey Related key on pivot table for related model
+     * @param string $parentKey Primary key on this model
+     * @param string $relatedKey Primary key on related model
+     * @return Collection
+     */
+    public function belongsToMany($related, $table = null, $foreignPivotKey = null, $relatedPivotKey = null, $parentKey = null, $relatedKey = null) {
+        $instance = new $related();
+        
+        // Determine pivot table name if not provided
+        if ($table === null) {
+            $thisClass = get_class($this);
+            $thisParts = explode('\\', $thisClass);
+            $thisClassName = end($thisParts);
+            
+            $relatedClass = $related;
+            $relatedParts = explode('\\', $relatedClass);
+            $relatedClassName = end($relatedParts);
+            
+            $models = [
+                strtolower($thisClassName),
+                strtolower($relatedClassName)
+            ];
+            sort($models); // Alphabetically sort for consistency
+            $table = implode('_', $models);
+        }
+        
+        // Determine foreign pivot key if not provided
+        if ($foreignPivotKey === null) {
+            $thisClass = get_class($this);
+            $thisParts = explode('\\', $thisClass);
+            $thisClassName = end($thisParts);
+            $foreignPivotKey = strtolower($thisClassName) . '_id';
+        }
+        
+        // Determine related pivot key if not provided
+        if ($relatedPivotKey === null) {
+            $relatedClass = $related;
+            $relatedParts = explode('\\', $relatedClass);
+            $relatedClassName = end($relatedParts);
+            $relatedPivotKey = strtolower($relatedClassName) . '_id';
+        }
+        
+        // Determine parent key if not provided
+        if ($parentKey === null) {
+            $parentKey = $this->primaryKey;
+        }
+        
+        // Determine related key if not provided
+        if ($relatedKey === null) {
+            $relatedKey = $instance->primaryKey;
+        }
+        
+        // Check if parent key exists
+        if (!isset($this->attributes[$parentKey])) {
+            return new Collection([]);
+        }
+        
         global $wpdb;
-        $charset_collate = $wpdb->get_charset_collate();
         
-        // Create instance of the model to get table name
-        $model = new $modelClass();
-        $tableName = $wpdb->prefix . $model->getTable();
+        // Get related model IDs from pivot table
+        $tableName = $wpdb->prefix . $table;
+        $query = $wpdb->prepare(
+            "SELECT $relatedPivotKey FROM $tableName WHERE $foreignPivotKey = %s",
+            $this->attributes[$parentKey]
+        );
+        $pivotResults = $wpdb->get_results($query, ARRAY_A);
         
-        // Create blueprint object
-        $blueprint = new Model_Blueprint($tableName);
+        // If no pivot results, return empty array
+        if (empty($pivotResults)) {
+            return new Collection([]);
+        }
         
-        // Call the callback to define columns
-        call_user_func($callback, $blueprint);
+        // Get related model IDs
+        $relatedIds = array_column($pivotResults, $relatedPivotKey);
         
-        // Generate the SQL
-        $sql = $blueprint->toSql() . $charset_collate . ";";
+        // Get related models
+        $relatedModels = [];
+        foreach ($relatedIds as $id) {
+            $model = $related::find($id);
+            if ($model) {
+                $relatedModels[] = $model;
+            }
+        }
         
-        // Execute the SQL using dbDelta
-        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-        dbDelta($sql);
+        return new Collection($relatedModels);
+    }
+
+    /**
+     * Convert the model instance to an array.
+     *
+     * @return array
+     */
+    public function toArray() {
+        $array = $this->attributes;
+        
+        // Add loaded relations to array
+        foreach ($this->relations as $key => $value) {
+            if ($value instanceof Collection) {
+                $array[$key] = $value->toArray();
+            } elseif ($value instanceof Model) {
+                $array[$key] = $value->toArray();
+            } else {
+                $array[$key] = $value;
+            }
+        }
+        
+        return $array;
     }
 }
 
 /**
- * Blueprint class for defining table schema
+ * Query Builder class for models
  */
-class Model_Blueprint {
+class Builder {
     /**
-     * The table name.
+     * The model being queried.
      *
-     * @var string
+     * @var \EhxDirectorist\Models\Model
      */
-    protected $table;
+    protected $model;
     
     /**
-     * The columns of the table.
+     * The relationships that should be eager loaded.
      *
      * @var array
      */
-    protected $columns = [];
+    protected $eagerLoad = [];
     
     /**
-     * The primary key of the table.
+     * Where conditions for the query.
      *
-     * @var string|null
+     * @var array
      */
-    protected $primaryKey = null;
+    protected $wheres = [];
     
     /**
-     * Create a new blueprint instance.
+     * Create a new query builder instance.
      *
-     * @param string $table
+     * @param \EhxDirectorist\Models\Model $model
      * @return void
      */
-    public function __construct($table) {
-        $this->table = $table;
+    public function __construct(Model $model) {
+        $this->model = $model;
     }
     
     /**
-     * Add an ID column to the table.
+     * Set the relationships that should be eager loaded.
      *
+     * @param mixed $relations
      * @return $this
      */
-    public function id() {
-        $this->columns[] = "`id` bigint(20) unsigned NOT NULL AUTO_INCREMENT";
-        $this->primaryKey = 'id';
-        return $this;
-    }
-    
-    /**
-     * Add an integer column to the table.
-     *
-     * @param string $name
-     * @param bool $unsigned
-     * @param bool $nullable
-     * @return $this
-     */
-    public function integer($name, $unsigned = false, $nullable = false) {
-        $column = "`$name` int" . ($unsigned ? ' unsigned' : '');
-        $column .= ($nullable ? ' DEFAULT NULL' : ' NOT NULL');
-        $this->columns[] = $column;
-        return $this;
-    }
-    
-    /**
-     * Add a varchar column to the table.
-     *
-     * @param string $name
-     * @param int $length
-     * @param bool $nullable
-     * @return $this
-     */
-    public function string($name, $length = 255, $nullable = false) {
-        $column = "`$name` varchar($length)";
-        $column .= ($nullable ? ' DEFAULT NULL' : ' NOT NULL');
-        $this->columns[] = $column;
-        return $this;
-    }
-    
-    /**
-     * Add a text column to the table.
-     *
-     * @param string $name
-     * @param bool $nullable
-     * @return $this
-     */
-    public function text($name, $nullable = false) {
-        $column = "`$name` text";
-        $column .= ($nullable ? ' DEFAULT NULL' : ' NOT NULL');
-        $this->columns[] = $column;
-        return $this;
-    }
-    
-    /**
-     * Add a datetime column to the table.
-     *
-     * @param string $name
-     * @param bool $nullable
-     * @return $this
-     */
-    public function datetime($name, $nullable = false) {
-        $column = "`$name` datetime";
-        $column .= ($nullable ? ' DEFAULT NULL' : ' NOT NULL');
-        $this->columns[] = $column;
-        return $this;
-    }
-    
-    /**
-     * Add timestamp columns to the table.
-     *
-     * @return $this
-     */
-    public function timestamps() {
-        $this->columns[] = "`created_at` datetime DEFAULT NULL";
-        $this->columns[] = "`updated_at` datetime DEFAULT NULL";
-        return $this;
-    }
-    
-    /**
-     * Convert the blueprint to SQL.
-     *
-     * @return string
-     */
-    public function toSql() {
-        $sql = "CREATE TABLE {$this->table} (\n";
-        $sql .= implode(",\n", $this->columns);
+    public function with($relations) {
+        $relations = is_array($relations) ? $relations : func_get_args();
         
-        if ($this->primaryKey) {
-            $sql .= ",\nPRIMARY KEY (`{$this->primaryKey}`)";
+        foreach ($relations as $relation) {
+            $this->eagerLoad[] = $relation;
         }
         
-        $sql .= "\n)";
+        return $this;
+    }
+    
+    /**
+     * Add a where clause to the query.
+     *
+     * @param array|string $column
+     * @param mixed $operator
+     * @param mixed $value
+     * @return $this
+     */
+    public function where($column, $operator = null, $value = null) {
+        // Handle array of conditions
+        if (is_array($column)) {
+            foreach ($column as $key => $value) {
+                $this->wheres[$key] = $value;
+            }
+            return $this;
+        }
         
-        return $sql;
+        // Handle single condition with operator and value
+        if ($value !== null) {
+            $this->wheres[$column] = $value;
+        } else {
+            $this->wheres[$column] = $operator;
+        }
+        
+        return $this;
+    }
+    
+    /**
+     * Execute the query and get the first result.
+     *
+     * @return \EhxDirectorist\Models\Model|null
+     */
+    public function first() {
+        $results = $this->get();
+        return $results->first();
+    }
+    
+    /**
+     * Execute the query and get the results.
+     *
+     * @return \EhxDirectorist\Models\Collection
+     */
+    public function get() {
+        $modelClass = get_class($this->model);
+        
+        // Get models based on where conditions
+        if (!empty($this->wheres)) {
+            $results = $modelClass::where($this->wheres);
+        } else {
+            $results = $modelClass::all();
+        }
+        
+        // Eager load relations
+        if (!empty($this->eagerLoad)) {
+            $this->eagerLoadRelations($results);
+        }
+        
+        return $results;
+    }
+    
+    /**
+     * Eager load the relationships for the models.
+     *
+     * @param \EhxDirectorist\Models\Collection $models
+     * @return void
+     */
+    protected function eagerLoadRelations(Collection $models) {
+        foreach ($models as $model) {
+            $model->loadRelations($this->eagerLoad);
+        }
+    }
+}
+
+/**
+ * Collection class for storing model results
+ */
+class Collection implements \ArrayAccess, \Countable, \Iterator {
+    /**
+     * The items contained in the collection.
+     *
+     * @var array
+     */
+    protected $items = [];
+    
+    /**
+     * The position of the iterator.
+     *
+     * @var int
+     */
+    protected $position = 0;
+    
+    /**
+     * Create a new collection.
+     *
+     * @param array $items
+     * @return void
+     */
+    public function __construct(array $items = []) {
+        $this->items = $items;
+    }
+    
+    /**
+     * Get all of the items in the collection.
+     *
+     * @return array
+     */
+    public function all() {
+        return $this->items;
+    }
+    
+    /**
+     * Get the first item from the collection.
+     *
+     * @return mixed|null
+     */
+    public function first() {
+        return !empty($this->items) ? reset($this->items) : null;
+    }
+    
+    /**
+     * Determine if the collection is empty.
+     *
+     * @return bool
+     */
+    public function isEmpty() {
+        return empty($this->items);
+    }
+    
+    /**
+     * Get the collection of items as a plain array.
+     *
+     * @return array
+     */
+    public function toArray() {
+        $result = [];
+        
+        foreach ($this->items as $key => $value) {
+            if ($value instanceof Model) {
+                $result[$key] = $value->toArray();
+            } elseif ($value instanceof Collection) {
+                $result[$key] = $value->toArray();
+            } else {
+                $result[$key] = $value;
+            }
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Load a set of relationships onto the collection.
+     *
+     * @param array $relations
+     * @return $this
+     */
+    public function loadRelations(array $relations) {
+        foreach ($this->items as $item) {
+            if ($item instanceof Model) {
+                $item->loadRelations($relations);
+            }
+        }
+        
+        return $this;
+    }
+    
+    /**
+     * Count the number of items in the collection.
+     *
+     * @return int
+     */
+    public function count(): int {
+        return count($this->items);
+    }
+    
+    /**
+     * Get the current item.
+     *
+     * @return mixed
+     */
+    public function current(): mixed {
+        return $this->items[$this->position];
+    }
+    
+    /**
+     * Get the key of the current item.
+     *
+     * @return int|string
+     */
+    public function key(): mixed {
+        return $this->position;
+    }
+    
+    /**
+     * Move to the next item.
+     *
+     * @return void
+     */
+    public function next(): void {
+        ++$this->position;
+    }
+    
+    /**
+     * Rewind the iterator to the first item.
+     *
+     * @return void
+     */
+    public function rewind(): void {
+        $this->position = 0;
+    }
+    
+    /**
+     * Determine if the current position is valid.
+     *
+     * @return bool
+     */
+    public function valid(): bool {
+        return isset($this->items[$this->position]);
+    }
+    
+    /**
+     * Determine if an item exists at an offset.
+     *
+     * @param mixed $offset
+     * @return bool
+     */
+    public function offsetExists($offset): bool {
+        return isset($this->items[$offset]);
+    }
+    
+    /**
+     * Get an item at a given offset.
+     *
+     * @param mixed $offset
+     * @return mixed
+     */
+    public function offsetGet($offset): mixed {
+        return $this->items[$offset];
+    }
+    
+    /**
+     * Set the item at a given offset.
+     *
+     * @param mixed $offset
+     * @param mixed $value
+     * @return void
+     */
+    public function offsetSet($offset, $value): void {
+        if (is_null($offset)) {
+            $this->items[] = $value;
+        } else {
+            $this->items[$offset] = $value;
+        }
+    }
+    
+    /**
+     * Unset the item at a given offset.
+     *
+     * @param mixed $offset
+     * @return void
+     */
+    public function offsetUnset($offset): void {
+        unset($this->items[$offset]);
     }
 }

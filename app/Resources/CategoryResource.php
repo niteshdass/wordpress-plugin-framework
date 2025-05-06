@@ -4,6 +4,9 @@ use EhxDirectorist\Models\Category;
 
 class CategoryResource {
     public static function store($category) {
+        $cat = self::getAll();
+        $categories = Category::all();
+        var_dump($categories);
         return Category::create($category);
     }
 
