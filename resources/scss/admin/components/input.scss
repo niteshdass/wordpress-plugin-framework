@@ -1,0 +1,29 @@
+.el-input__wrapper{
+    border-radius: 8px;
+    .el-input__inner {
+        border: none;
+        &:focus {
+            border: none;
+            box-shadow: none;
+        }
+    }
+}
+.lmt_input{
+    textarea,select, input{
+        border: 1px solid $ehxd-neutral-500;
+        border-radius: 8px;
+        background: #fff;
+        &:hover{
+            box-shadow: 0 0 0 0.5px $ehxd-neutral-400 inset;
+        }
+        &:focus{
+            outline: none;
+            box-shadow: none;
+            border: 1px solid $ehxd-primary-500;
+        }
+    }
+}
+.form-label, .el-form-item__label {
+    @include text($size: 14px, $weight: 500);
+    margin-bottom: 5px;
+}

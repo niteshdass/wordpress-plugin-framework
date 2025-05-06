@@ -1,0 +1,23 @@
+.el-button--primary {
+    color: $ehxd-dark-500;
+    background: $ehxd-primary-500;
+}
+
+.el-button--success {
+    color: $ehxd-dark-500;
+    background: $ehxd-dark-500;
+    border-color: $ehxd-dark-500;
+    &:hover {
+        background: $ehxd-dark-600;
+        border-color: $ehxd-dark-500;
+    }
+}
+.el-button {
+    border-radius: 8px;
+}
+.lmt_box_icon{
+    background: none;
+    border: none;
+    color: $ehxd-primary-500;
+    padding: 0px;
+}

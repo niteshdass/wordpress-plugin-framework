@@ -1,0 +1,78 @@
+@mixin text($color: #2F3448, $size: 12px, $weight: 400, $lineHeight: 24px) {
+    margin: 0;
+    color: $color;
+    font-family: Inter;
+    font-size: $size;
+    font-style: normal;
+    font-weight: $weight;
+    line-height: $lineHeight;
+}
+
+@mixin flex($direction: row, $justify: flex-start, $align: stretch, $wrap: nowrap) {
+    display: flex;
+    flex-direction: $direction;
+    justify-content: $justify;
+    align-items: $align;
+    flex-wrap: $wrap;
+}
+
+@mixin tm_btn_primary {
+    @include text($color: #fff, $size: 14px, $weight: 500, $lineHeight: 24px);
+    padding: 10px 20px;
+    border-radius: 6px;
+    background-color: $tm-primary-500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    &:hover {
+        background-color: $tm-primary-600;
+    }
+}
+
+@mixin h1-medium {
+    @include text($color: #2F3448, $size: 36px, $weight: 500, $lineHeight: 46px);
+}
+
+@mixin h2-medium {
+    @include text($color: #2F3448, $size: 24px, $weight: 500, $lineHeight: 34px);
+}
+
+@mixin h3-medium {
+    @include text($color: #2F3448, $size: 20px, $weight: 500, $lineHeight: 30px);
+}
+
+@mixin h4-medium {
+    @include text($color: #2F3448, $size: 16px, $weight: 500, $lineHeight: 26px);
+}
+
+@mixin h5-medium {
+    @include text($color: #2F3448, $size: 14px, $weight: 500, $lineHeight: 24px);
+}
+
+@mixin h6-medium {
+    @include text($color: #2F3448, $size: 12px, $weight: 500, $lineHeight: 22px);
+}
+
+@mixin h1-bold {
+    @include text($color: #2F3448, $size: 36px, $weight: 700, $lineHeight: 46px);
+}
+
+@mixin h2-bold {
+    @include text($color: #2F3448, $size: 24px, $weight: 700, $lineHeight: 34px);
+}
+
+@mixin h3-bold {
+    @include text($color: #2F3448, $size: 20px, $weight: 700, $lineHeight: 30px);
+}
+
+@mixin h4-bold {
+    @include text($color: #2F3448, $size: 16px, $weight: 700, $lineHeight: 26px);
+}
+
+@mixin h5-bold {
+    @include text($color: #2F3448, $size: 14px, $weight: 700, $lineHeight: 24px);
+}
+
+@mixin h6-bold {
+    @include text($color: #2F3448, $size: 12px, $weight: 700, $lineHeight: 22px);
+}

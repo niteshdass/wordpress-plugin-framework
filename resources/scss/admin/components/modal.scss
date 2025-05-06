@@ -1,0 +1,40 @@
+.ehxd-app-modal {
+    
+    padding: 0;
+    .el-dialog{
+        border-radius: 8px;
+    }
+    .el-dialog__header {
+        border-bottom: $ehxd-border;
+        padding: 20px;
+        .el-dialog__title {
+            @include text($size: 20px, $weight: 600);
+        }
+        .el-dialog__headerbtn {
+            font-size: 16px;
+            font-weight: 700;
+            background: $ehxd-neutral-100;
+            border-radius: 8px;
+            width: 34px;
+            height: 34px;
+            margin: 20px;
+        }
+    }
+    .el-dialog__body {
+        padding: 20px;
+    }
+    .ehxd-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 16px;
+    }
+}
+
+.delete-modal-body {
+    padding: 20px 0px;
+    text-align: center;
+    margin-bottom: 5px;
+    h1 {
+        @include text($size: 18px, $weight: 600)
+    }
+}

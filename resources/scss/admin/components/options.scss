@@ -1,0 +1,33 @@
+.lmt-app-options {
+    border: $ehxd-border;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 10px 0px;
+    .app-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 24px 0px;
+        .draggable-icon {
+            font-size: 22px;
+            cursor:move;
+        }
+        .option-content {
+            width: 100%;
+        }
+        .delete-icon {
+            border: $ehxd-border;
+            padding: 9px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    }
+    .add-new-option {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        text-decoration: underline;
+        cursor: pointer;
+        color: $ehxd-primary-500;
+    }
+}

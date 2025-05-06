@@ -1,0 +1,46 @@
+.ehxd-table-wrapper {
+    background: $ehxd_background_color;
+    border-radius: 8px;
+    .ehxd-table-header {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px;
+        border-bottom: $ehxd_border;
+        border-radius: 8px 8px 0px 0px;
+        .table-title {
+            @include text($size: 20px, $weight: 600)
+        }
+     .ltm_button{
+        border-radius: 8px;
+     }
+    }
+  
+    .ehxd-table-filter {
+        padding: 14px 20px;
+        border-bottom: $ehxd_border;
+        display: flex;
+        gap: 20px;
+        .el-date-editor {
+            max-width: 250px;
+        }
+      
+    }
+    .table-footer {
+        padding: 16px 20px;
+        .el-pagination {
+            display: flex;
+            justify-content: flex-end;
+            .el-pagination__total {
+                margin-right: 20px;
+            }
+        }
+    }
+    table {
+        thead > tr > th {
+            background-color: $ehxd-neutral-50 !important;
+        }
+        tr {
+            height: 60px;
+        }
+    }
+}

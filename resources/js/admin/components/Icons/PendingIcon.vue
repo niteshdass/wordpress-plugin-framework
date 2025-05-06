@@ -1,0 +1,3 @@
+<template>
+    <svg width="12" height="16" viewBox="0 0 22 28" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M19.75 1.5V5.25C19.75 10.0825 15.8325 14 11 14M2.25 1.5V5.25C2.25 10.0825 6.16751 14 11 14M11 14C15.8325 14 19.75 17.9175 19.75 22.75V26.5M11 14C6.16751 14 2.25 17.9175 2.25 22.75V26.5" stroke="#DC8006" stroke-width="1.5"></path> <path d="M1 1.5H21M21 26.5H1" stroke="#DC8006" stroke-width="1.5" stroke-linecap="round"></path></svg>
+</template>
