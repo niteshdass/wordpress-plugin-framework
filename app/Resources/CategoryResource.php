@@ -8,11 +8,11 @@ class CategoryResource {
     }
 
     public static function update($category, $id) {
-        return Category::where('id', $id)->update($category);
+        return (new Category())->where('id', $id)->update($category);
     }
 
     public static function delete($id) {
-        return Category::where('id', $id)->delete();
+        return (new Category())->where('id', $id)->delete();
     }
 
     public static function get($id) {
@@ -20,6 +20,7 @@ class CategoryResource {
     }
 
     public static function getAll() {
-        return Category::all();
+        $categories = (new Category)->where('id', '=', 3)->all();
+        return $categories;
     }
 }

@@ -11,13 +11,14 @@
             <template #header>
                 <h1 class="table-title">All Category</h1>
                 <el-button @click="openCategoryAddModal()" size="large" type="primary" icon="Plus" class="ltm_button">
-                    Add New Category
+                    Add New Category nnn
                 </el-button>
             </template>
 
             <template #filter>
                 <el-input class="ehxd-search-input ehxd_input" v-model="search" style="width: 240px" size="large"
                     placeholder="Please Input" prefix-icon="Search" />
+                <GoogleMapAddress />
             </template>
 
             <template #columns>
@@ -61,16 +62,19 @@
 
 
 <script>
+import GoogleMapAddress from "../../components/GoogleMapAddress.vue";
 import AppTable from "../../components/AppTable.vue";
 import Icon from "../../components/Icons/AppIcon.vue";
 import AppModal from "../../components/AppModal.vue";
 import AddCategory from "./add_category.vue";
+import axios from "axios";
 export default {
     components: {
         AppTable,
         Icon,
         AppModal,
-        AddCategory
+        AddCategory,
+        GoogleMapAddress
     },
     data() {
         return {
@@ -83,6 +87,7 @@ export default {
             pageSize: 10,
             active_id: null,
             add_category_modal: false,
+            rest_api: window.EhxDirectoristData.rest_api,
         }
     },
 
@@ -94,8 +99,20 @@ export default {
             } else {
                 console.log("Modal ref not found! Ensure AppModal is rendered.");
             }
-        }
-    }
+        },
+
+        async fetchCouriers() {
+            try {
+                const response = await axios.get(`${this.rest_api}/get-categories`);
+                console.log('Category:', response.data);
+            } catch (error) {
+                console.error('Error fetching category:', error);
+            }
+        },
+    },
+    mounted() {
+        this.fetchCouriers();
+    },
 
 
 }

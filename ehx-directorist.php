@@ -50,6 +50,16 @@ function EHX_DIRECTORIST_init() {
 // Hook into WordPress init
 add_action('plugins_loaded', 'EHX_DIRECTORIST_init');
 
+add_action( 'init', function() {
+    wp_enqueue_script(
+        'ehx-google-maps-api',
+        'https://maps.googleapis.com/maps/api/js?key=AIzaSyAdBAaTcZW8-4MCuVwzc7mcGS0OasoplgU&libraries=places',
+        [],
+        null,
+        true
+    );
+});
+
 // Activation hook
 register_activation_hook(__FILE__, function() {
     require_once EHX_DIRECTORIST_PLUGIN_DIR . 'app/Database/Migrator.php';

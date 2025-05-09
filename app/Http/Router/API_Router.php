@@ -40,11 +40,22 @@ class API_Router {
      * Add route to list
      */
     private static function add_route($method, $route, $callback) {
+        $convertedRoute = self::convert_route_params($route);
+
         self::$routes[] = [
             'method' => $method,
-            'route' => $route,
+            'route' => $convertedRoute,
             'callback' => self::resolve_callback($callback)
         ];
+    }
+
+    /**
+     * Convert Laravel-style {param} to WordPress-style (?P<param>[^/]+)
+     */
+    private static function convert_route_params($route) {
+        return preg_replace_callback('/{(\w+)}/', function ($matches) {
+            return '(?P<' . $matches[1] . '>[^/]+)';
+        }, $route);
     }
 
     /**
@@ -53,16 +64,16 @@ class API_Router {
     private static function resolve_callback($callback) {
         return function (WP_REST_Request $wpRequest) use ($callback) {
             [$class, $method] = $callback;
-    
+
             $refMethod = new \ReflectionMethod($class, $method);
             $args = [];
-    
+
             foreach ($refMethod->getParameters() as $param) {
                 $type = $param->getType();
-    
+
                 if ($type && !$type->isBuiltin()) {
                     $typeName = $type->getName();
-    
+
                     if (is_subclass_of($typeName, \EhxDirectorist\Http\Requests\RequestGuard::class)) {
                         $args[] = new $typeName($wpRequest); // Inject your custom request
                     } elseif ($typeName === \WP_REST_Request::class) {
@@ -74,11 +85,10 @@ class API_Router {
                     $args[] = null;
                 }
             }
-    
+
             return call_user_func_array([$class, $method], $args);
         };
     }
-    
 
     /**
      * Register all stored routes

@@ -44,7 +44,8 @@ class CategoryController {
         ]);
     }
 
-    public static function getCategory($id) {
+    public static function getCategory(WP_REST_Request $request, $id) {
+        $id = $request->get_param('id');
         $res = CategoryResource::get($id);
         if(!$res) {
             return rest_ensure_response([
@@ -57,7 +58,8 @@ class CategoryController {
         ]);
     }
 
-    public static function getAllCategories() {
+    public static function getCategories() {
+
         $res = CategoryResource::getAll();
         if(!$res) {
             return rest_ensure_response([
