@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Ehx Directorist
+ * Plugin Name: Ehx Directorist Framework
  * Plugin URI: https://example.com/ehx-irectorist
  * Description: Description of the plugin goes here.
  * Version: 1.0.0
